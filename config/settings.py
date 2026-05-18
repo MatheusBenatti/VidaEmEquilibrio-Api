@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-5)uq17ba4=dbyyhn2#cv*(cz%6f_a17-%+bzugdcs5h@4^+jc='
+SECRET_KEY = os.getenv("SECRET_KEY", 'django-insecure-5)uq17ba4=dbyyhn2#cv*(cz%6f_a17-%+bzugdcs5h@4^+jc=')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'VidaEmEquilibrio.psicologos',
 ]
 
 MIDDLEWARE = [
@@ -53,7 +54,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'VidaEmEquilibrio.urls'
+ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
     {
@@ -70,12 +71,11 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'VidaEmEquilibrio.wsgi.application'
+WSGI_APPLICATION = 'config.wsgi.application'
 
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-SECRET_KEY = os.getenv("SECRET_KEY")
 
 DATABASES = {
     'default': {
