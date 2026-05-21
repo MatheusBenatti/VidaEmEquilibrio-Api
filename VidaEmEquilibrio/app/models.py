@@ -12,6 +12,7 @@ class User(AbstractUser):
     tipo = models.CharField(max_length=10, choices=TIPO_CHOICES)
     token = models.CharField(max_length=40, unique=True, null=True, blank=True)
     ativo = models.BooleanField(default=True)
+    primeira_senha = models.BooleanField(default=False)
     criado_em = models.DateTimeField(auto_now_add=True)
     
     USERNAME_FIELD = 'username'

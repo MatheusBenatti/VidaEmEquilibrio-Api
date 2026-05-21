@@ -1,5 +1,5 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.response import Response
 from django.core.mail import send_mail
 from django.conf import settings
@@ -13,6 +13,18 @@ from .serializers import (
 import secrets
 
 
+def get_user_from_token(request):
+    """Extrai o usuário a partir do header Authorization: Token <token>"""
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Token '):
+        return None
+    token = auth_header.split('Token ')[1].strip()
+    try:
+        return User.objects.get(token=token)
+    except User.DoesNotExist:
+        return None
+
+
 class PsicologoViewSet(viewsets.ModelViewSet):
     queryset = Psicologo.objects.all()
     serializer_class = PsicologoSerializer
@@ -23,6 +35,8 @@ class PacienteViewSet(viewsets.ModelViewSet):
     serializer_class = PacienteSerializer
 
 @api_view(['POST'])
+@authentication_classes([])
+@permission_classes([])
 def login(request):
 
     email = request.data.get('email')
@@ -43,6 +57,7 @@ def login(request):
             'nome': user.nome,
             'username': user.username,
             'tipo': user.tipo,
+            'primeira_senha': user.primeira_senha,
         }
         
         if user.tipo == 'psicologo' and hasattr(user, 'psicologo_profile'):
@@ -57,6 +72,8 @@ def login(request):
 
 
 @api_view(['POST'])
+@authentication_classes([])
+@permission_classes([])
 def registrar_psicologo(request):
 
     serializer = RegistroPsicologoSerializer(data=request.data)
@@ -67,7 +84,7 @@ def registrar_psicologo(request):
             {
                 'success': 'Psicólogo cadastrado com sucesso',
                 'id': user.id,
-                'email': user.email,
+                'email': user.username,
                 'tipo': user.tipo,
             },
             status=status.HTTP_201_CREATED
@@ -77,6 +94,8 @@ def registrar_psicologo(request):
 
 
 @api_view(['POST'])
+@authentication_classes([])
+@permission_classes([])
 def registrar_paciente(request):
 
     serializer = RegistroPacienteSerializer(data=request.data)
@@ -87,7 +106,7 @@ def registrar_paciente(request):
             {
                 'success': 'Paciente cadastrado com sucesso',
                 'id': user.id,
-                'email': user.email,
+                'email': user.username,
                 'tipo': user.tipo,
             },
             status=status.HTTP_201_CREATED
@@ -97,16 +116,17 @@ def registrar_paciente(request):
 
 
 @api_view(['POST'])
+@authentication_classes([])
+@permission_classes([])
 def adicionar_paciente(request):
-    token = request.auth
-    if not token:
+    user = get_user_from_token(request)
+    if not user:
         return Response({'error': 'Não autenticado'}, status=status.HTTP_401_UNAUTHORIZED)
     
     try:
-        psicologo_user = User.objects.get(token=token.key if hasattr(token, 'key') else token)
-        psicologo_profile = Psicologo.objects.get(user=psicologo_user)
-    except:
-        return Response({'error': 'Psicólogo não encontrado'}, status=status.HTTP_401_UNAUTHORIZED)
+        psicologo_profile = Psicologo.objects.get(user=user)
+    except Psicologo.DoesNotExist:
+        return Response({'error': 'Psicólogo não encontrado'}, status=status.HTTP_403_FORBIDDEN)
     
     email = request.data.get('email')
     nome = request.data.get('nome', 'Paciente')
@@ -119,15 +139,16 @@ def adicionar_paciente(request):
     
     senha_temporaria = secrets.token_urlsafe(8)
     
-    user = User.objects.create_user(
+    paciente_user = User.objects.create_user(
         username=email,
         password=senha_temporaria,
         nome=nome,
         tipo='paciente',
+        primeira_senha=True,
     )
     
     paciente = Paciente.objects.create(
-        user=user,
+        user=paciente_user,
         psicologo_responsavel=psicologo_profile
     )
     
@@ -139,9 +160,36 @@ def adicionar_paciente(request):
     
     return Response({
         'success': 'Paciente adicionado',
-        'id': user.id,
-        'username': user.username,
+        'id': paciente_user.id,
+        'username': paciente_user.username,
+        'nome': paciente_user.nome,
+        'senha_temporaria': senha_temporaria,
     }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([])
+def meus_pacientes(request):
+    user = get_user_from_token(request)
+    if not user:
+        return Response({'error': 'Não autenticado'}, status=status.HTTP_401_UNAUTHORIZED)
+    
+    try:
+        psicologo_profile = Psicologo.objects.get(user=user)
+    except Psicologo.DoesNotExist:
+        return Response({'error': 'Psicólogo não encontrado'}, status=status.HTTP_403_FORBIDDEN)
+    
+    pacientes = Paciente.objects.filter(psicologo_responsavel=psicologo_profile).select_related('user')
+    data = []
+    for p in pacientes:
+        data.append({
+            'id': p.id,
+            'nome': p.user.nome,
+            'email': p.user.username,
+        })
+    
+    return Response(data)
 
 
 def enviar_email_convite(email, nome, senha_temporaria):
@@ -173,16 +221,13 @@ def enviar_email_convite(email, nome, senha_temporaria):
     )
 
 @api_view(['POST'])
+@authentication_classes([])
+@permission_classes([])
 def mudar_senha(request):
 
-    token = request.auth
-    if not token:
+    user = get_user_from_token(request)
+    if not user:
         return Response({'error': 'Não autenticado'}, status=status.HTTP_401_UNAUTHORIZED)
-    
-    try:
-        user = User.objects.get(token=token.key if hasattr(token, 'key') else token)
-    except:
-        return Response({'error': 'Usuário não encontrado'}, status=status.HTTP_401_UNAUTHORIZED)
     
     senha_atual = request.data.get('senha_atual')
     nova_senha = request.data.get('nova_senha')
@@ -200,6 +245,7 @@ def mudar_senha(request):
         )
     
     user.set_password(nova_senha)
+    user.primeira_senha = False
     user.save()
     
     return Response({'success': 'Senha alterada com sucesso'})

@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     PsicologoViewSet, PacienteViewSet,
     login, registrar_psicologo, registrar_paciente,
-    adicionar_paciente, mudar_senha
+    adicionar_paciente, mudar_senha, meus_pacientes
 )
 
 router = DefaultRouter()
@@ -17,4 +17,5 @@ urlpatterns = [
     path('registrar-paciente/', registrar_paciente, name='registrar_paciente'),
     path('adicionar-paciente/', adicionar_paciente, name='adicionar_paciente'),
     path('mudar-senha/', mudar_senha, name='mudar_senha'),
+    path('meus-pacientes/', meus_pacientes, name='meus_pacientes'),
 ]
