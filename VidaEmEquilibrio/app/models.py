@@ -44,6 +44,11 @@ class Psicologo(models.Model):
 
 
 class Paciente(models.Model):
+    AVATAR_CHOICES = [
+        ('masculino', 'Masculino'),
+        ('feminino', 'Feminino'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='paciente_profile')
     psicologo_responsavel = models.ForeignKey(
         Psicologo, 
@@ -52,6 +57,8 @@ class Paciente(models.Model):
         on_delete=models.SET_NULL,
         related_name='pacientes'
     )
+    avatar = models.CharField(max_length=20, choices=AVATAR_CHOICES, null=True, blank=True)
+    perfil_configurado = models.BooleanField(default=False)
     
     class Meta:
         db_table = 'paciente_profile'

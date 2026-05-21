@@ -63,6 +63,10 @@ def login(request):
         if user.tipo == 'psicologo' and hasattr(user, 'psicologo_profile'):
             data['crp'] = user.psicologo_profile.crp
         
+        if user.tipo == 'paciente' and hasattr(user, 'paciente_profile'):
+            data['avatar'] = user.paciente_profile.avatar
+            data['perfil_configurado'] = user.paciente_profile.perfil_configurado
+        
         return Response(data)
     else:
         return Response(
@@ -187,9 +191,47 @@ def meus_pacientes(request):
             'id': p.id,
             'nome': p.user.nome,
             'email': p.user.username,
+            'avatar': p.avatar,
         })
     
     return Response(data)
+
+
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([])
+def configurar_perfil(request):
+    user = get_user_from_token(request)
+    if not user:
+        return Response({'error': 'Não autenticado'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    try:
+        paciente = Paciente.objects.get(user=user)
+    except Paciente.DoesNotExist:
+        return Response({'error': 'Paciente não encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+    nome = request.data.get('nome')
+    avatar = request.data.get('avatar')
+
+    if not nome or not avatar:
+        return Response({'error': 'Nome e avatar são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if avatar not in ['masculino', 'feminino']:
+        return Response({'error': 'Avatar inválido'}, status=status.HTTP_400_BAD_REQUEST)
+
+    user.nome = nome
+    user.save()
+
+    paciente.avatar = avatar
+    paciente.perfil_configurado = True
+    paciente.save()
+
+    return Response({
+        'success': 'Perfil configurado com sucesso',
+        'nome': user.nome,
+        'avatar': paciente.avatar,
+        'perfil_configurado': paciente.perfil_configurado,
+    })
 
 
 def enviar_email_convite(email, nome, senha_temporaria):
