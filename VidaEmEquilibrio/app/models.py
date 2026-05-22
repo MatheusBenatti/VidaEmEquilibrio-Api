@@ -65,3 +65,16 @@ class Paciente(models.Model):
     
     def __str__(self):
         return self.user.nome
+
+
+class Relato(models.Model):
+    paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='relatos')
+    texto = models.TextField()
+    criado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'relatos'
+        ordering = ['-criado_em']
+
+    def __str__(self):
+        return f"Relato de {self.paciente.user.nome} em {self.criado_em.strftime('%d/%m/%Y %H:%M')}"

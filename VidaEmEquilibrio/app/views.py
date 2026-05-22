@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.auth.hashers import check_password
-from .models import User, Psicologo, Paciente
+from .models import User, Psicologo, Paciente, Relato
 from .auth import authenticate_user
 from .serializers import (
     PsicologoSerializer, PacienteSerializer,
@@ -232,6 +232,54 @@ def configurar_perfil(request):
         'avatar': paciente.avatar,
         'perfil_configurado': paciente.perfil_configurado,
     })
+
+
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([])
+def salvar_relato(request):
+    user = get_user_from_token(request)
+    if not user:
+        return Response({'error': 'Não autenticado'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    try:
+        paciente = Paciente.objects.get(user=user)
+    except Paciente.DoesNotExist:
+        return Response({'error': 'Paciente não encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+    texto = request.data.get('texto', '').strip()
+    if not texto:
+        return Response({'error': 'O relato não pode estar vazio'}, status=status.HTTP_400_BAD_REQUEST)
+
+    relato = Relato.objects.create(paciente=paciente, texto=texto)
+    return Response({
+        'id': relato.id,
+        'texto': relato.texto,
+        'criado_em': relato.criado_em.strftime('%d/%m/%Y %H:%M'),
+    }, status=status.HTTP_201_CREATED)
+
+
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([])
+def relatos_paciente(request, paciente_id):
+    user = get_user_from_token(request)
+    if not user:
+        return Response({'error': 'Não autenticado'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    try:
+        paciente = Paciente.objects.get(id=paciente_id)
+    except Paciente.DoesNotExist:
+        return Response({'error': 'Paciente não encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+    relatos = Relato.objects.filter(paciente=paciente)
+    data = [{
+        'id': r.id,
+        'texto': r.texto,
+        'criado_em': r.criado_em.strftime('%d/%m/%Y %H:%M'),
+    } for r in relatos]
+
+    return Response({'paciente': paciente.user.nome, 'relatos': data})
 
 
 def enviar_email_convite(email, nome, senha_temporaria):
