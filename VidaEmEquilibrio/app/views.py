@@ -213,16 +213,20 @@ def configurar_perfil(request):
     nome = request.data.get('nome')
     avatar = request.data.get('avatar')
 
-    if not nome or not avatar:
+    if not nome or avatar is None:
         return Response({'error': 'Nome e avatar são obrigatórios'}, status=status.HTTP_400_BAD_REQUEST)
 
-    if avatar not in ['masculino', 'feminino']:
-        return Response({'error': 'Avatar inválido'}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        avatar_num = int(avatar)
+        if avatar_num < 1 or avatar_num > 8:
+            raise ValueError()
+    except (ValueError, TypeError):
+        return Response({'error': 'Avatar deve ser um número entre 1 e 8'}, status=status.HTTP_400_BAD_REQUEST)
 
     user.nome = nome
     user.save()
 
-    paciente.avatar = avatar
+    paciente.avatar = avatar_num
     paciente.perfil_configurado = True
     paciente.save()
 
