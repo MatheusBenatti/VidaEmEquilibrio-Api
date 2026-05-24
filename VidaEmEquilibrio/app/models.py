@@ -63,8 +63,17 @@ class Paciente(models.Model):
 
 
 class Relato(models.Model):
+    HUMOR_CHOICES = [
+        ('muito_feliz', 'Muito Feliz'),
+        ('feliz', 'Feliz'),
+        ('neutro', 'Neutro'),
+        ('triste', 'Triste'),
+        ('muito_triste', 'Muito Triste'),
+    ]
+
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='relatos')
     texto = models.TextField()
+    humor = models.CharField(max_length=20, choices=HUMOR_CHOICES, default='neutro')
     criado_em = models.DateTimeField(auto_now_add=True)
 
     class Meta:

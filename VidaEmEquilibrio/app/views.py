@@ -252,13 +252,15 @@ def salvar_relato(request):
         return Response({'error': 'Paciente não encontrado'}, status=status.HTTP_404_NOT_FOUND)
 
     texto = request.data.get('texto', '').strip()
+    humor = request.data.get('humor', 'neutro')
     if not texto:
         return Response({'error': 'O relato não pode estar vazio'}, status=status.HTTP_400_BAD_REQUEST)
 
-    relato = Relato.objects.create(paciente=paciente, texto=texto)
+    relato = Relato.objects.create(paciente=paciente, texto=texto, humor=humor)
     return Response({
         'id': relato.id,
         'texto': relato.texto,
+        'humor': relato.humor,
         'criado_em': relato.criado_em.strftime('%d/%m/%Y %H:%M'),
     }, status=status.HTTP_201_CREATED)
 
@@ -280,10 +282,73 @@ def relatos_paciente(request, paciente_id):
     data = [{
         'id': r.id,
         'texto': r.texto,
+        'humor': r.humor,
         'criado_em': r.criado_em.strftime('%d/%m/%Y %H:%M'),
     } for r in relatos]
 
-    return Response({'paciente': paciente.user.nome, 'relatos': data})
+    # Calcular humor mais frequente
+    from collections import Counter
+    humor_counts = Counter([r.humor for r in relatos])
+    humor_mais_frequente = humor_counts.most_common(1)[0][0] if humor_counts else None
+
+    return Response({
+        'paciente': paciente.user.nome,
+        'relatos': data,
+        'humor_mais_frequente': humor_mais_frequente
+    })
+
+
+@api_view(['GET'])
+@authentication_classes([])
+@permission_classes([])
+def meus_relatos_calendario(request):
+    user = get_user_from_token(request)
+    if not user:
+        return Response({'error': 'Não autenticado'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    try:
+        paciente = Paciente.objects.get(user=user)
+    except Paciente.DoesNotExist:
+        return Response({'error': 'Paciente não encontrado'}, status=status.HTTP_404_NOT_FOUND)
+
+    from collections import Counter
+    from django.db.models.functions import TruncDate
+
+    # Buscar todos os relatos do paciente
+    relatos = Relato.objects.filter(paciente=paciente).order_by('-criado_em')
+
+    # Agrupar por dia
+    dias = {}
+    for relato in relatos:
+        dia_key = relato.criado_em.strftime('%Y-%m-%d')
+        if dia_key not in dias:
+            dias[dia_key] = {
+                'data': relato.criado_em.strftime('%d/%m/%Y'),
+                'relatos': [],
+                'humores': []
+            }
+        dias[dia_key]['relatos'].append({
+            'id': relato.id,
+            'texto': relato.texto,
+            'humor': relato.humor,
+            'criado_em': relato.criado_em.strftime('%H:%M'),
+        })
+        dias[dia_key]['humores'].append(relato.humor)
+
+    # Calcular humor mais frequente de cada dia
+    resultado = []
+    for dia_key, dados in sorted(dias.items(), reverse=True):
+        humor_counts = Counter(dados['humores'])
+        humor_mais_frequente = humor_counts.most_common(1)[0][0] if humor_counts else 'neutro'
+        resultado.append({
+            'data': dados['data'],
+            'data_iso': dia_key,
+            'humor_mais_frequente': humor_mais_frequente,
+            'total_relatos': len(dados['relatos']),
+            'relatos': dados['relatos']
+        })
+
+    return Response({'dias': resultado})
 
 
 def enviar_email_convite(email, nome, senha_temporaria):

@@ -4,7 +4,7 @@ from .views import (
     PsicologoViewSet, PacienteViewSet,
     login, registrar_psicologo, registrar_paciente,
     adicionar_paciente, mudar_senha, meus_pacientes, configurar_perfil,
-    salvar_relato, relatos_paciente
+    salvar_relato, relatos_paciente, meus_relatos_calendario
 )
 
 router = DefaultRouter()
@@ -22,4 +22,5 @@ urlpatterns = [
     path('configurar-perfil/', configurar_perfil, name='configurar_perfil'),
     path('salvar-relato/', salvar_relato, name='salvar_relato'),
     path('relatos-paciente/<int:paciente_id>/', relatos_paciente, name='relatos_paciente'),
+    path('meus-relatos-calendario/', meus_relatos_calendario, name='meus_relatos_calendario'),
 ]
