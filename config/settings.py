@@ -150,10 +150,11 @@ STATIC_URL = 'static/'
 
 
 import dj_database_url
-# Database - para Railway
+# Database - para Railway (tenta DATABASE_URL ou DATABASE_PUBLIC_URL)
+database_url = os.getenv('DATABASE_URL') or os.getenv('DATABASE_PUBLIC_URL')
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.getenv('DATABASE_URL'),
+        default=database_url,
         conn_max_age=600
     )
 }
