@@ -56,6 +56,7 @@ REST_FRAMEWORK = {
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # React local
+    "https://vida-em-equilibrio-front.vercel.app",  # Vercel production
 ]
 
 MIDDLEWARE = [
@@ -160,11 +161,5 @@ DATABASES = {
 # Static files
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
- 
-# CORS - permitir frontend
-CORS_ALLOWED_ORIGINS = [
-    "https://vida-em-equilibrio-front.netlify.app",  # URL do Netlify
-    "http://localhost:3000",  # Desenvolvimento local
-]
  
 ALLOWED_HOSTS = ['.railway.app', 'localhost', '127.0.0.1']
