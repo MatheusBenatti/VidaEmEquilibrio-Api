@@ -11,6 +11,7 @@ from .serializers import (
     RegistroPsicologoSerializer, RegistroPacienteSerializer, LoginSerializer
 )
 import secrets
+import threading
 
 
 def get_user_from_token(request):
@@ -156,14 +157,19 @@ def adicionar_paciente(request):
         psicologo_responsavel=psicologo_profile
     )
     
-    # Enviar email
-    try:
-        enviar_email_convite(email, nome, senha_temporaria)
-    except Exception as e:
-        print(f"Erro ao enviar email: {e}")
+    # Enviar email em paralelo (não bloqueia a resposta)
+    def enviar_email_async():
+        try:
+            enviar_email_convite(email, nome, senha_temporaria)
+        except Exception as e:
+            print(f"Erro ao enviar email: {e}")
+    
+    thread = threading.Thread(target=enviar_email_async)
+    thread.daemon = True
+    thread.start()
     
     return Response({
-        'success': 'Paciente adicionado',
+        'success': f'Paciente cadastrado com sucesso! Para teste, use a senha temporária: {senha_temporaria}',
         'id': paciente_user.id,
         'username': paciente_user.username,
         'nome': paciente_user.nome,
