@@ -163,7 +163,8 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
  
 # CORS - permitir frontend
 CORS_ALLOWED_ORIGINS = [
-    "https://seu-frontend.netlify.app",  # URL do Netlify
+    "https://vida-em-equilibrio-front.netlify.app",  # URL do Netlify
+    "http://localhost:3000",  # Desenvolvimento local
 ]
  
 ALLOWED_HOSTS = ['.railway.app', 'localhost', '127.0.0.1']
