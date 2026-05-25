@@ -150,14 +150,27 @@ STATIC_URL = 'static/'
 
 
 import dj_database_url
-# Database - para Railway (tenta DATABASE_URL ou DATABASE_PUBLIC_URL)
+# Database config - Railway (PostgreSQL) ou Local (Oracle)
 database_url = os.getenv('DATABASE_URL') or os.getenv('DATABASE_PUBLIC_URL')
-DATABASES = {
-    'default': dj_database_url.config(
-        default=database_url,
-        conn_max_age=600
-    )
-}
+
+if database_url:
+    # Railway - PostgreSQL
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=database_url,
+            conn_max_age=600
+        )
+    }
+else:
+    # Local - Oracle (variáveis do .env)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.oracle',
+            'NAME': os.getenv("DB_NAME"),
+            'USER': os.getenv("DB_USER"),
+            'PASSWORD': os.getenv("DB_PASSWORD"),
+        }
+    }
  
 # Static files
 STATIC_ROOT = BASE_DIR / 'staticfiles'
